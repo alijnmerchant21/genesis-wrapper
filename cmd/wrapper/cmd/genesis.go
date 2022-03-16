@@ -242,7 +242,7 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.BoostdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000) // 50mil
 
 	// Set genesis time
-	genParams.GenesisTime = parseTime("2022-03-17T00:00:00Z") // TODO: TBD
+	genParams.GenesisTime = parseTime("2022-03-15T14:00:00Z")
 
 	// Set consensus params
 	genParams.ConsensusParams = &tmproto.ConsensusParams{
@@ -400,21 +400,29 @@ func TestnetGenesisStates() *GenesisStates {
 		},
 	}
 
-	// Set claim records
 	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
-	genParams.ClaimGenesisState.ClaimRecords = records
 
-	// Set source account balance and the total supply
+	// Set source account balances
 	balances = append(balances, banktypes.Balance{
 		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // source address
 		Coins: sdk.NewCoins(
 			genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
 		),
 	})
+
+	// Add custom accounts
+	newBalances, totalCoins := addAccounts(genParams)
+	balances = append(balances, newBalances...)
+
+	// Set claim records and balances
+	genParams.ClaimGenesisState.ClaimRecords = records
 	genParams.BankGenesisStates.Balances = balances
+
+	// Set total supply
 	genParams.BankGenesisStates.Supply = sdk.NewCoins(
 		genParams.DEXdropSupply.Add(genParams.BoostdropSupply).Add(totalInitialGenesisCoin),
-	)
+	).Add(totalCoins...)
+
 	genParams.BankParams = banktypes.Params{
 		SendEnabled: []*banktypes.SendEnabled{
 			{
@@ -435,6 +443,54 @@ func MainnetGenesisStates() *GenesisStates {
 	// TODO: TBD
 
 	return genParams
+}
+
+func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
+	balances := []banktypes.Balance{
+		{
+			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",                             // foundation
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)), // 100mil
+		},
+		{
+			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt", // multisig-foundation
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q", // multisig-devteam
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1s5cj0r5yhg7vdxmt6hsrzu60d3rdk9k6whnkf4", // foundation1
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1s9car3sthmaj273m7pju4wcaghg0s3rv6kt0s9", // foundation2
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1s8lhryggj6yvxhfa3dq072tftxp07uwtzv0vqr", // foundation3
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1je3rplrmx9fnfqxyu7nleufwwdt3e3kedn7z6u", // devteam1
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1gkvyqpj5sd6nz3c4jp6dzp4jlpl2m7c0vkp4t3", // devteam2
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+		{
+			Address: "cre1yz4fsahrkamckmzv03sasgj95cquxntzxnchjg", // devteam3
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		},
+	}
+
+	totalCoins := sdk.Coins{}
+	for _, balance := range balances {
+		totalCoins = totalCoins.Add(balance.Coins...)
+	}
+
+	return balances, totalCoins
 }
 
 func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
@@ -492,13 +548,13 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 	}
 
 	// (Testing) Set custom claim records
-	// records = append(records, claimtypes.ClaimRecord{
-	// 	AirdropId:             1,
-	// 	Recipient:             "cre1zaavvzxez0elundtn32qnk9lkm8kmcszxclz6p", // alice
-	// 	InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
-	// 	ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
-	// 	ClaimedConditions:     []claimtypes.ConditionType{},
-	// })
+	records = append(records, claimtypes.ClaimRecord{
+		AirdropId:             1,
+		Recipient:             "cre1zaavvzxez0elundtn32qnk9lkm8kmcszxclz6p",
+		InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
+		ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
+		ClaimedConditions:     []claimtypes.ConditionType{},
+	})
 
 	return records, balances, sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
 }
