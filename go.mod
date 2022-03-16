@@ -6,6 +6,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/crescent-network/crescent v0.0.0
 	github.com/spf13/cobra v1.2.1
+	github.com/tendermint/budget v1.1.0
 	github.com/tendermint/tendermint v0.34.15
 )
 

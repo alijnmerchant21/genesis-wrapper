@@ -78,14 +78,14 @@ The genesis output file is at $HOME/.crescent/config/genesis.json
 
 			// Parse genesis params depending on the network type
 			networkType := args[0]
-			genParams := parseGenesisParams(networkType)
-			if genParams == nil {
+			genStates := parseNetworkType(networkType)
+			if genStates == nil {
 				return fmt.Errorf("you must choose between mainnet (m) or testnet (t): %s", args[0])
 			}
 
 			// Prepare genesis
 			chainID := args[1]
-			appState, genDoc, err = PrepareGenesis(clientCtx, appState, genDoc, genParams, chainID)
+			appState, genDoc, err = PrepareGenesis(clientCtx, appState, genDoc, genStates, chainID)
 			if err != nil {
 				return fmt.Errorf("failed to prepare genesis %w", err)
 			}
@@ -121,7 +121,7 @@ func PrepareGenesis(
 	clientCtx client.Context,
 	appState map[string]json.RawMessage,
 	genDoc *tmtypes.GenesisDoc,
-	genParams *GenesisParams,
+	genParams *GenesisStates,
 	chainID string,
 ) (map[string]json.RawMessage, *tmtypes.GenesisDoc, error) {
 	cdc := clientCtx.Codec
@@ -197,15 +197,14 @@ func PrepareGenesis(
 	return appState, genDoc, nil
 }
 
-type GenesisParams struct {
+type GenesisStates struct {
 	DEXdropSupply   sdk.Coin
 	BoostdropSupply sdk.Coin
 	BondDenom       string
 
-	GenesisTime     time.Time
-	ChainId         string
-	ConsensusParams *tmproto.ConsensusParams
-
+	GenesisTime         time.Time
+	ChainId             string
+	ConsensusParams     *tmproto.ConsensusParams
 	BankParams          banktypes.Params
 	DistributionParams  distrtypes.Params
 	StakingParams       stakingtypes.Params
@@ -215,13 +214,12 @@ type GenesisParams struct {
 	LiquidStakingParams liquidstakingtypes.Params
 	FarmingParams       farmingtypes.Params
 	BudgetParams        budgettypes.Params
-
-	BankGenesisStates banktypes.GenesisState
-	ClaimGenesisState claimtypes.GenesisState
+	BankGenesisStates   banktypes.GenesisState
+	ClaimGenesisState   claimtypes.GenesisState
 }
 
-func TestnetGenesisParams() *GenesisParams {
-	genParams := &GenesisParams{}
+func TestnetGenesisStates() *GenesisStates {
+	genParams := &GenesisStates{}
 	genParams.BondDenom = "ucre"
 	genParams.DEXdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000)   // 50mil
 	genParams.BoostdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000) // 50mil
@@ -362,8 +360,8 @@ func TestnetGenesisParams() *GenesisParams {
 	return genParams
 }
 
-func MainnetGenesisParams() *GenesisParams {
-	genParams := &GenesisParams{}
+func MainnetGenesisStates() *GenesisStates {
+	genParams := &GenesisStates{}
 	genParams.GenesisTime = parseTime("2022-04-14T00:00:00Z")
 
 	// TODO: TBD
@@ -371,7 +369,7 @@ func MainnetGenesisParams() *GenesisParams {
 	return genParams
 }
 
-func GetClaimRecords(genParams *GenesisParams) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
+func GetClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
 	results, err := readCSVFile(filePath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to read %s", filePath))
@@ -427,13 +425,13 @@ func GetClaimRecords(genParams *GenesisParams) ([]claimtypes.ClaimRecord, []bank
 	return records, balances, sdk.NewCoin("ucre", totalInitialGenesisAmt)
 }
 
-// parseGenesisParams returns GenesisParams based on the network type.
-func parseGenesisParams(networkType string) *GenesisParams {
+// parseNetworkType returns GenesisStates based on the network type.
+func parseNetworkType(networkType string) *GenesisStates {
 	switch strings.ToLower(networkType) {
 	case "t", "testnet":
-		return TestnetGenesisParams()
+		return TestnetGenesisStates()
 	case "m", "mainnet":
-		return MainnetGenesisParams()
+		return MainnetGenesisStates()
 	default:
 		return nil
 	}

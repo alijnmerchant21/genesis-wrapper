@@ -17,7 +17,7 @@ wrapper init test
 wrapper prepare-genesis testnet mooncat-1-1
 ```
 
-## Testing Methodology (Reference)
+## Testing (Reference)
 
 ### Build
 
