@@ -221,6 +221,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crescent-network/cosmos-sdk v1.0.2-sdk-0.44.5 h1:2ZaQ/Ayr2VlEn+QwkWyUoJtHUhHjwZeLIcm8phB29pc=
 github.com/crescent-network/cosmos-sdk v1.0.2-sdk-0.44.5/go.mod h1:maUA6m2TBxOJZkbwl0eRtEBgTX37kcaiOWU5t1HEGaY=
+github.com/crescent-network/crescent v0.0.0-20220316143238-14f27e2b6364 h1:4I3N0CMKL0vyU11USfEnDGkWsU5qJb09ayMkzEQ1cJg=
+github.com/crescent-network/crescent v0.0.0-20220316143238-14f27e2b6364/go.mod h1:c2+/458cQinBGHAEUmYEhzVbfaH7l97LqsFBEcxCHi0=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe23fU=
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=

@@ -14,13 +14,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	budgettypes "github.com/tendermint/budget/x/budget/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -137,6 +140,12 @@ func PrepareGenesis(
 	bankGenStateBz := cdc.MustMarshalJSON(bankGenState)
 	appState[banktypes.ModuleName] = bankGenStateBz
 
+	// Crisis module app state
+	crisisGenState := crisistypes.DefaultGenesisState()
+	crisisGenState.ConstantFee = genParams.CrisisStates.ConstantFee
+	crisisGenStateBz := cdc.MustMarshalJSON(crisisGenState)
+	appState[crisistypes.ModuleName] = crisisGenStateBz
+
 	// Distribution module app state
 	distrGenState := distrtypes.DefaultGenesisState()
 	distrGenState.Params = genParams.DistributionParams
@@ -155,6 +164,12 @@ func PrepareGenesis(
 	mintGenStateBz := cdc.MustMarshalJSON(mintGenState)
 	appState[minttypes.ModuleName] = mintGenStateBz
 
+	// Slashing module app state
+	slashingGenState := slashingtypes.DefaultGenesisState()
+	slashingGenState.Params = genParams.SlashingParams
+	slashingGenStateBz := cdc.MustMarshalJSON(slashingGenState)
+	appState[slashingtypes.ModuleName] = slashingGenStateBz
+
 	// Gov module app state
 	govGenState := govtypes.DefaultGenesisState()
 	govGenState.DepositParams = genParams.GovParams.DepositParams
@@ -162,6 +177,18 @@ func PrepareGenesis(
 	govGenState.TallyParams = genParams.GovParams.TallyParams
 	govGenStateBz := cdc.MustMarshalJSON(govGenState)
 	appState[govtypes.ModuleName] = govGenStateBz
+
+	// Farming module app state
+	farmingGenState := farmingtypes.DefaultGenesisState()
+	farmingGenState.Params = genParams.FarmingParams
+	farmingGenStateBz := cdc.MustMarshalJSON(farmingGenState)
+	appState[farmingtypes.ModuleName] = farmingGenStateBz
+
+	// Budget module app state
+	budgetGenState := budgettypes.DefaultGenesisState()
+	budgetGenState.Params = genParams.BudgetParams
+	budgetGenStatebz := cdc.MustMarshalJSON(budgetGenState)
+	appState[budgettypes.ModuleName] = budgetGenStatebz
 
 	// Liquidstaking module app state
 	liquidstakingGenState := liquidstakingtypes.DefaultGenesisState()
@@ -175,24 +202,12 @@ func PrepareGenesis(
 	liquidityGenStateBz := cdc.MustMarshalJSON(liquidityGenState)
 	appState[liquiditytypes.ModuleName] = liquidityGenStateBz
 
-	// Farming module app state
-	farmingGenState := farmingtypes.DefaultGenesisState()
-	farmingGenState.Params = genParams.FarmingParams
-	farmingGenStateBz := cdc.MustMarshalJSON(farmingGenState)
-	appState[farmingtypes.ModuleName] = farmingGenStateBz
-
 	// Claim module app state
 	claimGenState := claimtypes.DefaultGenesis()
 	claimGenState.Airdrops = genParams.ClaimGenesisState.Airdrops
 	claimGenState.ClaimRecords = genParams.ClaimGenesisState.ClaimRecords
 	claimGenStateBz := cdc.MustMarshalJSON(claimGenState)
 	appState[claimtypes.ModuleName] = claimGenStateBz
-
-	// Budget module app state
-	budgetGenState := budgettypes.DefaultGenesisState()
-	budgetGenState.Params = genParams.BudgetParams
-	budgetGenStatebz := cdc.MustMarshalJSON(budgetGenState)
-	appState[budgettypes.ModuleName] = budgetGenStatebz
 
 	return appState, genDoc, nil
 }
@@ -209,12 +224,14 @@ type GenesisStates struct {
 	DistributionParams  distrtypes.Params
 	StakingParams       stakingtypes.Params
 	GovParams           govtypes.Params
+	SlashingParams      slashingtypes.Params
 	MintParams          minttypes.Params
 	LiquidityParams     liquiditytypes.Params
 	LiquidStakingParams liquidstakingtypes.Params
 	FarmingParams       farmingtypes.Params
 	BudgetParams        budgettypes.Params
 	BankGenesisStates   banktypes.GenesisState
+	CrisisStates        crisistypes.GenesisState
 	ClaimGenesisState   claimtypes.GenesisState
 }
 
@@ -225,19 +242,29 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.BoostdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000) // 50mil
 
 	// Set genesis time
-	genParams.GenesisTime = parseTime("2022-03-17T00:00:00Z")
+	genParams.GenesisTime = parseTime("2022-03-17T00:00:00Z") // TODO: TBD
 
 	// Set consensus params
 	genParams.ConsensusParams = &tmproto.ConsensusParams{
 		Block: tmproto.BlockParams{
-			MaxBytes: 10000000,
-			MaxGas:   100000000,
+			MaxBytes:   10000000,
+			MaxGas:     100000000,
+			TimeIotaMs: 1000,
 		},
 		Evidence: tmproto.EvidenceParams{
 			MaxAgeNumBlocks: 403200,
 			MaxAgeDuration:  1209600000000000,
 			MaxBytes:        1000000,
 		},
+		Validator: tmproto.ValidatorParams{
+			PubKeyTypes: []string{"ed25519"},
+		},
+		Version: tmproto.VersionParams{},
+	}
+
+	// Set crisis
+	genParams.CrisisStates = crisistypes.GenesisState{
+		ConstantFee: sdk.NewInt64Coin(genParams.BondDenom, 1000),
 	}
 
 	// Set distribution params
@@ -253,7 +280,7 @@ func TestnetGenesisStates() *GenesisStates {
 		UnbondingTime:     1209600 * time.Second, // 2 weeks
 		MaxValidators:     20,
 		MaxEntries:        28,
-		HistoricalEntries: 10000,
+		HistoricalEntries: 10000, // TODO
 		BondDenom:         genParams.BondDenom,
 	}
 
@@ -263,31 +290,105 @@ func TestnetGenesisStates() *GenesisStates {
 		BlockTimeThreshold: 10 * time.Second,
 		InflationSchedules: []minttypes.InflationSchedule{
 			{
-				StartTime: parseTime(""),
-				EndTime:   parseTime(""),
-				Amount:    sdk.NewInt(0),
+				StartTime: genParams.GenesisTime,
+				EndTime:   genParams.GenesisTime.AddDate(1, 0, 0),
+				Amount:    sdk.NewInt(149400000000000),
 			},
 		},
+	}
+
+	// Set slashing params
+	genParams.SlashingParams = slashingtypes.Params{
+		SignedBlocksWindow:      10000,
+		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.050000000000000000"),
+		DowntimeJailDuration:    600 * time.Second,
+		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.050000000000000000"),
+		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.000100000000000000"),
+	}
+
+	// Set farming params
+	genParams.FarmingParams = farmingtypes.DefaultParams()
+	genParams.FarmingParams.PrivatePlanCreationFee = sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000))
+
+	// Set liquidity params
+	genParams.LiquidityParams = liquiditytypes.Params{
+		BatchSize:                1,
+		TickPrecision:            3,
+		FeeCollectorAddress:      "cre1zdew6yxyw92z373yqp756e0x4rvd2het37j0a2wjp7fj48eevxvq303p8d",
+		DustCollectorAddress:     "cre1suads2mkd027cmfphmk9fpuwcct4d8ys02frk8e64hluswfwfj0s4xymnj",
+		MinInitialPoolCoinSupply: sdk.NewInt(1000000000000),
+		PairCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
+		PoolCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
+		MinInitialDepositAmount:  sdk.NewInt(100000000),
+		DepositExtraGas:          sdk.Gas(60000),
+		WithdrawExtraGas:         sdk.Gas(64000),
+		OrderExtraGas:            sdk.Gas(37000),
+		MaxPriceLimitRatio:       sdk.MustNewDecFromStr("0.100000000000000000"),
+		MaxOrderLifespan:         86400 * time.Second,
+		SwapFeeRate:              sdk.MustNewDecFromStr("0"),
+		WithdrawFeeRate:          sdk.MustNewDecFromStr("0"),
 	}
 
 	// Set liquidstaking params
 	genParams.LiquidStakingParams = liquidstakingtypes.Params{
 		LiquidBondDenom: "ubcre",
 		WhitelistedValidators: []liquidstakingtypes.WhitelistedValidator{
+			// TODO: TBD
 			{
-				ValidatorAddress: "cosmosvaloper1zaavvzxez0elundtn32qnk9lkm8kmcsz8ycjrl", // alice operator address
-				TargetWeight:     sdk.NewInt(1_000_000_000),
+				ValidatorAddress: "crevaloper1zaavvzxez0elundtn32qnk9lkm8kmcszyvldht", // alice operator address
+				TargetWeight:     sdk.NewInt(10),
 			},
 		},
-		UnstakeFeeRate:         sdk.MustNewDecFromStr("0.001000000000000000"),
-		MinLiquidStakingAmount: sdk.NewInt(0),
+		UnstakeFeeRate:         sdk.MustNewDecFromStr("0"),
+		MinLiquidStakingAmount: sdk.NewInt(1000000),
+	}
+
+	// Set gov params
+	genParams.GovParams = govtypes.Params{
+		DepositParams: govtypes.DepositParams{
+			MinDeposit: sdk.NewCoins(
+				sdk.NewInt64Coin(genParams.BondDenom, 500000000),
+			),
+			MaxDepositPeriod: 300 * time.Second,
+		},
+		VotingParams: govtypes.VotingParams{
+			VotingPeriod: 300 * time.Second,
+		},
+		TallyParams: govtypes.TallyParams{
+			Quorum:        sdk.MustNewDecFromStr("0.400000000000000000"),
+			Threshold:     sdk.MustNewDecFromStr("0.500000000000000000"),
+			VetoThreshold: sdk.MustNewDecFromStr("0.334000000000000000"),
+		},
+	}
+
+	// Set budget params
+	genParams.BudgetParams = budgettypes.Params{
+		EpochBlocks: 1,
+		Budgets: []budgettypes.Budget{
+			{
+				Name:               "budget-ecosystem-incentive",
+				Rate:               sdk.MustNewDecFromStr("0.662500000000000000"),
+				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
+				DestinationAddress: "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+				StartTime:          genParams.GenesisTime,
+				EndTime:            genParams.GenesisTime.AddDate(1, 0, 0),
+			},
+			{
+				Name:               "budget-dev-team",
+				Rate:               sdk.MustNewDecFromStr("0.250000000000000000"),
+				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
+				DestinationAddress: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q",
+				StartTime:          genParams.GenesisTime,
+				EndTime:            genParams.GenesisTime.AddDate(1, 0, 0),
+			},
+		},
 	}
 
 	// Set airdrop
 	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{
 		{
 			Id:            1,
-			SourceAddress: "",
+			SourceAddress: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // TODO
 			Conditions: []claimtypes.ConditionType{
 				claimtypes.ConditionTypeDeposit,
 				claimtypes.ConditionTypeSwap,
@@ -300,14 +401,14 @@ func TestnetGenesisStates() *GenesisStates {
 	}
 
 	// Set claim records
-	records, balances, totalInitialGenesisCoin := GetClaimRecords(genParams)
+	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
 	genParams.ClaimGenesisState.ClaimRecords = records
 
 	// Set source account balance and the total supply
 	balances = append(balances, banktypes.Balance{
-		Address: "", // source address
+		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // source address
 		Coins: sdk.NewCoins(
-			genParams.DEXdropSupply.Add(genParams.BoostdropSupply).Add(totalInitialGenesisCoin),
+			genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
 		),
 	})
 	genParams.BankGenesisStates.Balances = balances
@@ -324,39 +425,6 @@ func TestnetGenesisStates() *GenesisStates {
 		DefaultSendEnabled: true,
 	}
 
-	// Set farming params
-	genParams.FarmingParams.PrivatePlanCreationFee = sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000))
-
-	// Set liquidity params
-	genParams.LiquidityParams = liquiditytypes.Params{
-		BatchSize:                1,
-		TickPrecision:            3,
-		FeeCollectorAddress:      "cre1zdew6yxyw92z373yqp756e0x4rvd2het37j0a2wjp7fj48eevxvq303p8d",
-		DustCollectorAddress:     "cre1suads2mkd027cmfphmk9fpuwcct4d8ys02frk8e64hluswfwfj0s4xymnj",
-		PairCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
-		PoolCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
-		MinInitialPoolCoinSupply: sdk.NewInt(1000000000000),
-		MaxPriceLimitRatio:       sdk.MustNewDecFromStr("0.100000000000000000"),
-		MaxOrderLifespan:         86400 * time.Second,
-		SwapFeeRate:              sdk.MustNewDecFromStr("0"),
-		WithdrawFeeRate:          sdk.MustNewDecFromStr("0"),
-	}
-
-	// Set gov params
-	genParams.GovParams = govtypes.Params{
-		DepositParams: govtypes.DepositParams{
-			MinDeposit: sdk.NewCoins(
-				sdk.NewInt64Coin(genParams.BondDenom, 0),
-			),
-		},
-		VotingParams: govtypes.VotingParams{
-			VotingPeriod: 17200 * time.Second,
-		},
-		TallyParams: govtypes.TallyParams{
-			Quorum: sdk.MustNewDecFromStr(""),
-		},
-	}
-
 	return genParams
 }
 
@@ -369,19 +437,17 @@ func MainnetGenesisStates() *GenesisStates {
 	return genParams
 }
 
-func GetClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
+func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
 	results, err := readCSVFile(filePath)
 	if err != nil {
-		panic(fmt.Sprintf("failed to read %s", filePath))
+		panic(fmt.Sprintf("failed to read csv file %s", filePath))
 	}
 
 	totalInitialGenesisAmt := sdk.ZeroInt()
 	balances := []banktypes.Balance{}
 	records := []claimtypes.ClaimRecord{}
 
-	// Loop through each result and get
 	for i, r := range results {
-		// Remove header
 		if i == 0 {
 			continue
 		}
@@ -389,40 +455,52 @@ func GetClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []bank
 		recipientAddr := r[0]
 		dexClaimableAmt, _ := sdk.NewIntFromString(r[1])
 
+		_, converted, err := bech32.DecodeAndConvert(recipientAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		targetPrefix := sdk.GetConfig().GetBech32AccountAddrPrefix()
+		recipientAddr, err = bech32.ConvertAndEncode(targetPrefix, converted)
+		if err != nil {
+			panic(err)
+		}
+
 		// Skip the zero amount
 		if dexClaimableAmt.IsZero() {
 			continue
 		}
 
-		// Out of the total claimable amount, 20% is set in genesis and
-		// the rest 80% is set in their claim record
 		initialGenesisAmt := dexClaimableAmt.Quo(sdk.NewInt(5))
 		initialClaimableAmt := dexClaimableAmt.Sub(initialGenesisAmt)
-		totalInitialGenesisAmt = totalInitialGenesisAmt.Add(initialGenesisAmt)
 
+		// 20% is set in genesis
 		balances = append(balances, banktypes.Balance{
 			Address: recipientAddr,
-			Coins:   sdk.NewCoins(sdk.NewCoin("ucre", initialClaimableAmt)),
+			Coins:   sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, initialGenesisAmt)),
 		})
 
+		totalInitialGenesisAmt = totalInitialGenesisAmt.Add(initialGenesisAmt)
+
+		// 80% is set in claim record
 		records = append(records, claimtypes.ClaimRecord{
 			AirdropId:             1,
 			Recipient:             recipientAddr,
-			InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, initialClaimableAmt)),
-			ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, initialClaimableAmt)),
+			InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, initialClaimableAmt)),
+			ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, initialClaimableAmt)),
 		})
 	}
 
 	// (Testing) Set custom claim records
-	records = append(records, claimtypes.ClaimRecord{
-		AirdropId:             1,
-		Recipient:             "cosmos1zaavvzxez0elundtn32qnk9lkm8kmcszzsv80v", // alice
-		InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(5_000_000_000_000))),
-		ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(5_000_000_000_000))),
-		ClaimedConditions:     []claimtypes.ConditionType{},
-	})
+	// records = append(records, claimtypes.ClaimRecord{
+	// 	AirdropId:             1,
+	// 	Recipient:             "cre1zaavvzxez0elundtn32qnk9lkm8kmcszxclz6p", // alice
+	// 	InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
+	// 	ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
+	// 	ClaimedConditions:     []claimtypes.ConditionType{},
+	// })
 
-	return records, balances, sdk.NewCoin("ucre", totalInitialGenesisAmt)
+	return records, balances, sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
 }
 
 // parseNetworkType returns GenesisStates based on the network type.
