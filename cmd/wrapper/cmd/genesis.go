@@ -451,38 +451,38 @@ func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
 			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",                             // foundation
 			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)), // 100mil
 		},
-		{
-			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt", // multisig-foundation
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q", // multisig-devteam
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1s5cj0r5yhg7vdxmt6hsrzu60d3rdk9k6whnkf4", // foundation1
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1s9car3sthmaj273m7pju4wcaghg0s3rv6kt0s9", // foundation2
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1s8lhryggj6yvxhfa3dq072tftxp07uwtzv0vqr", // foundation3
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1je3rplrmx9fnfqxyu7nleufwwdt3e3kedn7z6u", // devteam1
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1gkvyqpj5sd6nz3c4jp6dzp4jlpl2m7c0vkp4t3", // devteam2
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
-		{
-			Address: "cre1yz4fsahrkamckmzv03sasgj95cquxntzxnchjg", // devteam3
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
-		},
+		// {
+		// 	Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt", // multisig-foundation
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q", // multisig-devteam
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1s5cj0r5yhg7vdxmt6hsrzu60d3rdk9k6whnkf4", // foundation1
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1s9car3sthmaj273m7pju4wcaghg0s3rv6kt0s9", // foundation2
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1s8lhryggj6yvxhfa3dq072tftxp07uwtzv0vqr", // foundation3
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1je3rplrmx9fnfqxyu7nleufwwdt3e3kedn7z6u", // devteam1
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1gkvyqpj5sd6nz3c4jp6dzp4jlpl2m7c0vkp4t3", // devteam2
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
+		// {
+		// 	Address: "cre1yz4fsahrkamckmzv03sasgj95cquxntzxnchjg", // devteam3
+		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
+		// },
 	}
 
 	totalCoins := sdk.Coins{}
