@@ -496,12 +496,13 @@ func TestnetGenesisStates() *GenesisStates {
 	}
 
 	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
+	dexDropSupply := genParams.DEXdropSupply.Sub(totalInitialGenesisCoin)
 
 	// Set source account balances
 	balances = append(balances, banktypes.Balance{
-		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // source address
+		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // airdrop source address
 		Coins: sdk.NewCoins(
-			genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
+			dexDropSupply.Add(genParams.BoostdropSupply),
 		),
 	})
 
@@ -515,7 +516,7 @@ func TestnetGenesisStates() *GenesisStates {
 
 	// Set total supply
 	genParams.BankGenesisStates.Supply = sdk.NewCoins(
-		genParams.DEXdropSupply.Add(genParams.BoostdropSupply).Add(totalInitialGenesisCoin),
+		genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
 	).Add(totalCoins...)
 
 	return genParams
