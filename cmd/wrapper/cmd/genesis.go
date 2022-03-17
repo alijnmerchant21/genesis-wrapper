@@ -242,7 +242,7 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.BoostdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000) // 50mil
 
 	// Set genesis time
-	genParams.GenesisTime = parseTime("2022-03-15T14:00:00Z")
+	genParams.GenesisTime = parseTime("2022-03-18T14:00:00Z")
 
 	// Set consensus params
 	genParams.ConsensusParams = &tmproto.ConsensusParams{
@@ -262,7 +262,7 @@ func TestnetGenesisStates() *GenesisStates {
 		Version: tmproto.VersionParams{},
 	}
 
-	// Set crisis
+	// Set crisis genesis states
 	genParams.CrisisStates = crisistypes.GenesisState{
 		ConstantFee: sdk.NewInt64Coin(genParams.BondDenom, 1000),
 	}
@@ -280,7 +280,7 @@ func TestnetGenesisStates() *GenesisStates {
 		UnbondingTime:     1209600 * time.Second, // 2 weeks
 		MaxValidators:     20,
 		MaxEntries:        28,
-		HistoricalEntries: 10000, // TODO
+		HistoricalEntries: 10000,
 		BondDenom:         genParams.BondDenom,
 	}
 
@@ -310,6 +310,20 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.FarmingParams = farmingtypes.DefaultParams()
 	genParams.FarmingParams.PrivatePlanCreationFee = sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000))
 
+	// Set liquidstaking params
+	genParams.LiquidStakingParams = liquidstakingtypes.Params{
+		LiquidBondDenom: "ubcre",
+		WhitelistedValidators: []liquidstakingtypes.WhitelistedValidator{
+			// TODO: TBD
+			{
+				ValidatorAddress: "crevaloper1zaavvzxez0elundtn32qnk9lkm8kmcszyvldht", // alice operator address
+				TargetWeight:     sdk.NewInt(10),
+			},
+		},
+		UnstakeFeeRate:         sdk.MustNewDecFromStr("0"),
+		MinLiquidStakingAmount: sdk.NewInt(1000000),
+	}
+
 	// Set liquidity params
 	genParams.LiquidityParams = liquiditytypes.Params{
 		BatchSize:                1,
@@ -325,22 +339,8 @@ func TestnetGenesisStates() *GenesisStates {
 		OrderExtraGas:            sdk.Gas(37000),
 		MaxPriceLimitRatio:       sdk.MustNewDecFromStr("0.100000000000000000"),
 		MaxOrderLifespan:         86400 * time.Second,
-		SwapFeeRate:              sdk.MustNewDecFromStr("0"),
-		WithdrawFeeRate:          sdk.MustNewDecFromStr("0"),
-	}
-
-	// Set liquidstaking params
-	genParams.LiquidStakingParams = liquidstakingtypes.Params{
-		LiquidBondDenom: "ubcre",
-		WhitelistedValidators: []liquidstakingtypes.WhitelistedValidator{
-			// TODO: TBD
-			{
-				ValidatorAddress: "crevaloper1zaavvzxez0elundtn32qnk9lkm8kmcszyvldht", // alice operator address
-				TargetWeight:     sdk.NewInt(10),
-			},
-		},
-		UnstakeFeeRate:         sdk.MustNewDecFromStr("0"),
-		MinLiquidStakingAmount: sdk.NewInt(1000000),
+		SwapFeeRate:              sdk.MustNewDecFromStr("0.000000000000000000"),
+		WithdrawFeeRate:          sdk.MustNewDecFromStr("0.000000000000000000"),
 	}
 
 	// Set gov params
@@ -371,7 +371,7 @@ func TestnetGenesisStates() *GenesisStates {
 				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
 				DestinationAddress: "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
 				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(1, 0, 0),
+				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
 			},
 			{
 				Name:               "budget-dev-team",
@@ -379,7 +379,7 @@ func TestnetGenesisStates() *GenesisStates {
 				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
 				DestinationAddress: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q",
 				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(1, 0, 0),
+				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
 			},
 		},
 	}
@@ -547,14 +547,24 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 		})
 	}
 
-	// (Testing) Set custom claim records
-	records = append(records, claimtypes.ClaimRecord{
-		AirdropId:             1,
-		Recipient:             "cre1zaavvzxez0elundtn32qnk9lkm8kmcszxclz6p",
-		InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
-		ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(500_000_000_000))),
-		ClaimedConditions:     []claimtypes.ConditionType{},
-	})
+	// (Test) Set custom claim records
+	testClaimRecords := []claimtypes.ClaimRecord{
+		{
+			AirdropId:             1,
+			Recipient:             "cre1xs32ega2zw5hcn8wpgnxla8sueuqehxxphkped",
+			InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(50_000_000_000))),
+			ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(50_000_000_000))),
+			ClaimedConditions:     []claimtypes.ConditionType{},
+		},
+		{
+			AirdropId:             1,
+			Recipient:             "cre1pckvh2n0hngd5gt7lp2xwk3hqdrdzcvfnhxqc8",
+			InitialClaimableCoins: sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(66_666_666_667))),
+			ClaimableCoins:        sdk.NewCoins(sdk.NewCoin(genParams.DEXdropSupply.Denom, sdk.NewInt(66_666_666_667))),
+			ClaimedConditions:     []claimtypes.ConditionType{},
+		},
+	}
+	records = append(records, testClaimRecords...)
 
 	return records, balances, sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
 }
