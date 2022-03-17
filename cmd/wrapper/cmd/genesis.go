@@ -369,7 +369,7 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.SlashingParams = slashingtypes.Params{
 		SignedBlocksWindow:      30000,
 		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.050000000000000000"),
-		DowntimeJailDuration:    600 * time.Second,
+		DowntimeJailDuration:    60 * time.Second,
 		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.050000000000000000"),
 		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.000000000000000000"),
 	}
@@ -528,10 +528,15 @@ func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
 			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",
 			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)),
 		},
-		// MultiSig Helper
+		// Multisig helper
 		{
 			Address: "cre1arpj30n7z09hk27uzc54eg0nk8tzjk68pa6sfp",
 			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		// Faucet
+		{
+			Address: "cre1lp3kkuasafcqn8ryp4k6tm393x0aasfpwnt9d4",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000_000_000)),
 		},
 		// Validators
 		{
