@@ -360,11 +360,11 @@ func TestnetGenesisStates() *GenesisStates {
 
 	// Set slashing params
 	genParams.SlashingParams = slashingtypes.Params{
-		SignedBlocksWindow:      10000,
+		SignedBlocksWindow:      30000,
 		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.050000000000000000"),
 		DowntimeJailDuration:    600 * time.Second,
 		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.050000000000000000"),
-		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.000100000000000000"),
+		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.000000000000000000"),
 	}
 
 	// Set farming params
