@@ -388,7 +388,7 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{
 		{
 			Id:            1,
-			SourceAddress: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // TODO
+			SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax",
 			Conditions: []claimtypes.ConditionType{
 				claimtypes.ConditionTypeDeposit,
 				claimtypes.ConditionTypeSwap,
