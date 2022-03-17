@@ -244,6 +244,13 @@ type GenesisStates struct {
 	ClaimGenesisState   claimtypes.GenesisState
 }
 
+func MainnetGenesisStates() *GenesisStates {
+	genParams := &GenesisStates{}
+	genParams.GenesisTime = parseTime("2022-00-00T00:00:00Z")
+	// TODO: TBD
+	return genParams
+}
+
 func TestnetGenesisStates() *GenesisStates {
 	genParams := &GenesisStates{}
 	genParams.BondDenom = "ucre"
@@ -375,9 +382,36 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.LiquidStakingParams = liquidstakingtypes.Params{
 		LiquidBondDenom: "ubcre",
 		WhitelistedValidators: []liquidstakingtypes.WhitelistedValidator{
-			// TODO: TBD
 			{
-				ValidatorAddress: "crevaloper1zaavvzxez0elundtn32qnk9lkm8kmcszyvldht", // alice operator address
+				ValidatorAddress: "crevaloper1s96rxwvhrv4zn39v8haulhexflvjjp50j596ug",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1jwjph8k3933uuejyhvnptmnxf4afve876vnx6k",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1ckn4wlv5repm4lj62y9nwyvyvk63ydrxqt5t6q",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1g7lz8463vkmdjtzj2a8s4lwz2xksfnk3838quf",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1fksh8k3dhggajvm2mm433c2dr0jeq8kun5eqcg",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1scdg75uqv3j5kcsh089ksqmyx590mjz4n4ep9s",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper10tzu9srek0masgefjsgqpyyvm5jywgwwj8nwen",
+				TargetWeight:     sdk.NewInt(10),
+			},
+			{
+				ValidatorAddress: "crevaloper1x5wgh6vwye60wv3dtshs9dmqggwfx2ld4uln5g",
 				TargetWeight:     sdk.NewInt(10),
 			},
 		},
@@ -487,22 +521,53 @@ func TestnetGenesisStates() *GenesisStates {
 	return genParams
 }
 
-func MainnetGenesisStates() *GenesisStates {
-	genParams := &GenesisStates{}
-	genParams.GenesisTime = parseTime("2022-04-14T00:00:00Z")
-
-	// TODO: TBD
-
-	return genParams
-}
-
 func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
 	balances := []banktypes.Balance{
+		// Foundation
 		{
-			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",                             // foundation
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)), // 100mil
+			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)),
 		},
-		// TODO: TBD
+		// MultiSig Helper
+		{
+			Address: "cre1arpj30n7z09hk27uzc54eg0nk8tzjk68pa6sfp",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		// Validators
+		{
+			Address: "cre1s96rxwvhrv4zn39v8haulhexflvjjp50sq943z",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1jwjph8k3933uuejyhvnptmnxf4afve87ccnfhu",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1ckn4wlv5repm4lj62y9nwyvyvk63ydrxzl5yh2",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1g7lz8463vkmdjtzj2a8s4lwz2xksfnk399803r",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1fksh8k3dhggajvm2mm433c2dr0jeq8ku3qe04z",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1scdg75uqv3j5kcsh089ksqmyx590mjz43pewg6",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre10tzu9srek0masgefjsgqpyyvm5jywgwwsnnp5e",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		{
+			Address: "cre1x5wgh6vwye60wv3dtshs9dmqggwfx2ldhgluez",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		},
+		//
+		// TODO: comment out for now
 		// {
 		// 	Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt", // multisig-foundation
 		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
