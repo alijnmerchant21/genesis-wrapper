@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -133,10 +134,17 @@ func PrepareGenesis(
 	genDoc.GenesisTime = genParams.GenesisTime
 	genDoc.ConsensusParams = genParams.ConsensusParams
 
+	// Auth module app state
+	authGenState := authtypes.DefaultGenesisState()
+	authGenState.Params = genParams.AuthParams
+	authGenStateBz := cdc.MustMarshalJSON(authGenState)
+	appState[authtypes.ModuleName] = authGenStateBz
+
 	// Bank module app state
 	bankGenState := banktypes.DefaultGenesisState()
 	bankGenState.Balances = genParams.BankGenesisStates.Balances
 	bankGenState.Supply = genParams.BankGenesisStates.Supply
+	bankGenState.Params = genParams.BankParams
 	bankGenStateBz := cdc.MustMarshalJSON(bankGenState)
 	appState[banktypes.ModuleName] = bankGenStateBz
 
@@ -220,6 +228,7 @@ type GenesisStates struct {
 	GenesisTime         time.Time
 	ChainId             string
 	ConsensusParams     *tmproto.ConsensusParams
+	AuthParams          authtypes.Params
 	BankParams          banktypes.Params
 	DistributionParams  distrtypes.Params
 	StakingParams       stakingtypes.Params
@@ -262,6 +271,13 @@ func TestnetGenesisStates() *GenesisStates {
 		Version: tmproto.VersionParams{},
 	}
 
+	// Set auth params
+	genParams.AuthParams = authtypes.DefaultParams()
+	genParams.AuthParams.MaxMemoCharacters = 512
+
+	// Set bank params
+	genParams.BankParams = banktypes.DefaultParams()
+
 	// Set crisis genesis states
 	genParams.CrisisStates = crisistypes.GenesisState{
 		ConstantFee: sdk.NewInt64Coin(genParams.BondDenom, 1000),
@@ -292,7 +308,52 @@ func TestnetGenesisStates() *GenesisStates {
 			{
 				StartTime: genParams.GenesisTime,
 				EndTime:   genParams.GenesisTime.AddDate(1, 0, 0),
-				Amount:    sdk.NewInt(149400000000000),
+				Amount:    sdk.NewInt(149_400000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(1, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(2, 0, 0),
+				Amount:    sdk.NewInt(203_400000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(2, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(3, 0, 0),
+				Amount:    sdk.NewInt(142_400000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(3, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(4, 0, 0),
+				Amount:    sdk.NewInt(99_600000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(4, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(5, 0, 0),
+				Amount:    sdk.NewInt(69_800000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(5, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(6, 0, 0),
+				Amount:    sdk.NewInt(48_900000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(6, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(7, 0, 0),
+				Amount:    sdk.NewInt(34_100000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(7, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(8, 0, 0),
+				Amount:    sdk.NewInt(24_000000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(8, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(9, 0, 0),
+				Amount:    sdk.NewInt(16_700000_000000),
+			},
+			{
+				StartTime: genParams.GenesisTime.AddDate(9, 0, 0),
+				EndTime:   genParams.GenesisTime.AddDate(10, 0, 0),
+				Amount:    sdk.NewInt(11_700000_000000),
 			},
 		},
 	}
@@ -423,16 +484,6 @@ func TestnetGenesisStates() *GenesisStates {
 		genParams.DEXdropSupply.Add(genParams.BoostdropSupply).Add(totalInitialGenesisCoin),
 	).Add(totalCoins...)
 
-	genParams.BankParams = banktypes.Params{
-		SendEnabled: []*banktypes.SendEnabled{
-			{
-				Denom:   genParams.BondDenom,
-				Enabled: true,
-			},
-		},
-		DefaultSendEnabled: true,
-	}
-
 	return genParams
 }
 
@@ -451,6 +502,7 @@ func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
 			Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt",                             // foundation
 			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000_000_000)), // 100mil
 		},
+		// TODO: TBD
 		// {
 		// 	Address: "cre1y4a8y4005ch3cx23f8alxpykuvtwh5stfcgutt", // multisig-foundation
 		// 	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1)),
