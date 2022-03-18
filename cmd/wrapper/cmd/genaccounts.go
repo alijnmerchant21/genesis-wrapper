@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 
@@ -184,6 +185,62 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 	cmd.Flags().String(flagVestingAmt, "", "amount of coins for vesting accounts")
 	cmd.Flags().Int64(flagVestingStart, 0, "schedule start time (unix epoch) for vesting accounts")
 	cmd.Flags().Int64(flagVestingEnd, 0, "schedule end time (unix epoch) for vesting accounts")
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// Generated genesis file is missing genesis accounts.
+// This command reads the genesis and add genesis accounts from bank balances.
+func AddGenesisAccountsFromGenFileCmd(defaultNodeHome string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "add-genesis-accounts [filePath]",
+		Short: "Add genesis accounts from the existing file and dump new genesis.json",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			cdc := clientCtx.Codec
+
+			// Read genesis file
+			genFile := args[0]
+			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+			}
+
+			authGenState := authtypes.GetGenesisStateFromAppState(cdc, appState)
+			bankGenState := banktypes.GetGenesisStateFromAppState(cdc, appState)
+
+			// Add genesis accounts
+			genAccounts := []authtypes.GenesisAccount{}
+			for _, balance := range bankGenState.GetBalances() {
+				genAccount := authtypes.NewBaseAccount(balance.GetAddress(), nil, 0, 0)
+				genAccounts = append(genAccounts, genAccount)
+			}
+			genAccounts = authtypes.SanitizeGenesisAccounts(genAccounts)
+
+			genAccs, err := authtypes.PackAccounts(genAccounts)
+			if err != nil {
+				return fmt.Errorf("failed to convert accounts into any's: %w", err)
+			}
+
+			authGenState.Accounts = genAccs
+			authGenStateBz := cdc.MustMarshalJSON(&authGenState)
+			appState[authtypes.ModuleName] = authGenStateBz
+
+			appStateJSON, err := json.Marshal(appState)
+			if err != nil {
+				return fmt.Errorf("failed to marshal application genesis state: %w", err)
+			}
+
+			log.Println("Dumping genesis file...")
+
+			genDoc.AppState = appStateJSON
+			return genutil.ExportGenesisFile(genDoc, genFile)
+		},
+	}
+
+	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd

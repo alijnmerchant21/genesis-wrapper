@@ -239,6 +239,7 @@ type GenesisStates struct {
 	LiquidStakingParams liquidstakingtypes.Params
 	FarmingParams       farmingtypes.Params
 	BudgetParams        budgettypes.Params
+	AuthGenesisState    authtypes.GenesisState
 	BankGenesisStates   banktypes.GenesisState
 	CrisisStates        crisistypes.GenesisState
 	ClaimGenesisState   claimtypes.GenesisState
@@ -495,7 +496,7 @@ func TestnetGenesisStates() *GenesisStates {
 		},
 	}
 
-	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
+	records, balances, genAccounts, totalInitialGenesisCoin := parseClaimRecords(genParams)
 	dexDropSupply := genParams.DEXdropSupply.Sub(totalInitialGenesisCoin)
 
 	// Set source account balances
@@ -505,6 +506,10 @@ func TestnetGenesisStates() *GenesisStates {
 			dexDropSupply.Add(genParams.BoostdropSupply),
 		),
 	})
+
+	// TODO: refacotr these codes
+	sourceAcc, _ := sdk.AccAddressFromBech32("cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw")
+	genAccounts = append(genAccounts, authtypes.NewBaseAccount(sourceAcc, nil, 0, 0))
 
 	// Add custom accounts
 	newBalances, totalCoins := addAccounts(genParams)
@@ -518,6 +523,14 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.BankGenesisStates.Supply = sdk.NewCoins(
 		genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
 	).Add(totalCoins...)
+
+	// Set genesis base accounts
+	accs := authtypes.SanitizeGenesisAccounts(genAccounts)
+	genAccs, err := authtypes.PackAccounts(accs)
+	if err != nil {
+		panic(err)
+	}
+	genParams.AuthGenesisState.Accounts = genAccs
 
 	return genParams
 }
@@ -616,13 +629,14 @@ func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
 	return balances, totalCoins
 }
 
-func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
+func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, []authtypes.GenesisAccount, sdk.Coin) {
 	results, err := readCSVFile(filePath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to read csv file %s", filePath))
 	}
 
 	totalInitialGenesisAmt := sdk.ZeroInt()
+	genAccounts := []authtypes.GenesisAccount{}
 	balances := []banktypes.Balance{}
 	records := []claimtypes.ClaimRecord{}
 
@@ -659,6 +673,15 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 			Coins:   sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, initialGenesisAmt)),
 		})
 
+		recipientAcc, _ := sdk.AccAddressFromBech32(recipientAddr)
+
+		genAccount := authtypes.NewBaseAccount(recipientAcc, nil, 0, 0)
+		genAccounts = append(genAccounts, genAccount)
+
+		if err := genAccount.Validate(); err != nil {
+			panic(err)
+		}
+
 		totalInitialGenesisAmt = totalInitialGenesisAmt.Add(initialGenesisAmt)
 
 		// 80% is set in claim record
@@ -689,7 +712,7 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 	}
 	records = append(records, testClaimRecords...)
 
-	return records, balances, sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
+	return records, balances, genAccounts, sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
 }
 
 // parseNetworkType returns GenesisStates based on the network type.
