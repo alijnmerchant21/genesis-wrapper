@@ -481,38 +481,41 @@ func TestnetGenesisStates() *GenesisStates {
 	}
 
 	// Set airdrop
-	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{
-		{
-			Id:            1,
-			SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax",
-			Conditions: []claimtypes.ConditionType{
-				claimtypes.ConditionTypeDeposit,
-				claimtypes.ConditionTypeSwap,
-				claimtypes.ConditionTypeLiquidStake,
-				claimtypes.ConditionTypeVote,
-			},
-			StartTime: genParams.GenesisTime,
-			EndTime:   genParams.GenesisTime.AddDate(0, 6, 0),
+	dexAirdrop := claimtypes.Airdrop{
+		Id:            1,
+		SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax",
+		Conditions: []claimtypes.ConditionType{
+			claimtypes.ConditionTypeDeposit,
+			claimtypes.ConditionTypeSwap,
+			claimtypes.ConditionTypeLiquidStake,
+			claimtypes.ConditionTypeVote,
 		},
+		StartTime: genParams.GenesisTime,
+		EndTime:   genParams.GenesisTime.AddDate(0, 6, 0),
 	}
+	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{dexAirdrop}
 
+	// Parse claim records
 	records, balances, genAccounts, totalInitialGenesisCoin := parseClaimRecords(genParams)
+
+	// Deduct total initial genesis coin from DEXdrop supply
 	dexDropSupply := genParams.DEXdropSupply.Sub(totalInitialGenesisCoin)
 
 	// Set source account balances
 	balances = append(balances, banktypes.Balance{
-		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // airdrop source address
+		Address: dexAirdrop.SourceAddress, // airdrop source address
 		Coins: sdk.NewCoins(
-			dexDropSupply.Add(genParams.BoostdropSupply),
+			dexDropSupply.Add(genParams.BoostdropSupply), // total airdrop supply (DEXdrop+Boostdrop)
 		),
 	})
-
-	// TODO: refacotr these codes
-	sourceAcc, _ := sdk.AccAddressFromBech32("cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw")
+	sourceAcc, _ := sdk.AccAddressFromBech32(dexAirdrop.SourceAddress)
 	genAccounts = append(genAccounts, authtypes.NewBaseAccount(sourceAcc, nil, 0, 0))
 
 	// Add custom accounts
 	newBalances, totalCoins := addAccounts(genParams)
+	for _, b := range newBalances {
+		genAccounts = append(genAccounts, authtypes.NewBaseAccount(b.GetAddress(), nil, 0, 0))
+	}
 	balances = append(balances, newBalances...)
 
 	// Set claim records and balances
@@ -675,6 +678,7 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 
 		recipientAcc, _ := sdk.AccAddressFromBech32(recipientAddr)
 
+		// Add base account
 		genAccount := authtypes.NewBaseAccount(recipientAcc, nil, 0, 0)
 		genAccounts = append(genAccounts, genAccount)
 
