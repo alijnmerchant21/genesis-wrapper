@@ -250,7 +250,7 @@ func MainnetGenesisStates() *GenesisStates {
 	genParams.BoostdropSupply = sdk.NewInt64Coin(genParams.BondDenom, 50_000_000_000_000) // 50mil
 
 	// Set genesis time
-	genParams.GenesisTime = parseTime("2022-03-18T14:00:00Z")
+	genParams.GenesisTime = parseTime("2022-04-14T00:00:00Z")
 
 	// Set consensus params
 	genParams.ConsensusParams = &tmproto.ConsensusParams{
@@ -376,6 +376,7 @@ func MainnetGenesisStates() *GenesisStates {
 	}
 
 	// Set liquidstaking params
+	// TODO: determine whitelisted validators
 	genParams.LiquidStakingParams = liquidstakingtypes.Params{
 		LiquidBondDenom: "ubcre",
 		WhitelistedValidators: []liquidstakingtypes.WhitelistedValidator{
@@ -454,7 +455,7 @@ func MainnetGenesisStates() *GenesisStates {
 	}
 
 	// Set budget params
-	// TODO: verify start and end times
+	// TODO: verify start and end times, budget source and destination addresses
 	genParams.BudgetParams = budgettypes.Params{
 		EpochBlocks: 1,
 		Budgets: []budgettypes.Budget{
