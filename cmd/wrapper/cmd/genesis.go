@@ -551,38 +551,38 @@ func MainnetGenesisStates() *GenesisStates {
 		},
 	}
 
-	// Set airdrop genesis states
-	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{
-		{
-			Id:            1,
-			SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax",
-			Conditions: []claimtypes.ConditionType{
-				claimtypes.ConditionTypeDeposit,
-				claimtypes.ConditionTypeSwap,
-				claimtypes.ConditionTypeLiquidStake,
-				claimtypes.ConditionTypeVote,
-			},
-			StartTime: genParams.GenesisTime,
-			EndTime:   genParams.GenesisTime.AddDate(0, 6, 0), // 6 months
+	// Set claim genesis states
+	airdrop := claimtypes.Airdrop{
+		Id:            1,
+		SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax", // airdrop source address
+		Conditions: []claimtypes.ConditionType{
+			claimtypes.ConditionTypeDeposit,
+			claimtypes.ConditionTypeSwap,
+			claimtypes.ConditionTypeLiquidStake,
+			claimtypes.ConditionTypeVote,
 		},
+		StartTime: genParams.GenesisTime,
+		EndTime:   genParams.GenesisTime.AddDate(0, 6, 0),
 	}
+	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{airdrop}
 
+	// Parse claim records, balances, and total initial genesis coin from the airdrop result file
 	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
+
+	// Deduct 20% initial airdrop amount
 	dexDropSupply := genParams.DEXdropSupply.Sub(totalInitialGenesisCoin)
 
 	// Set source account balances
 	balances = append(balances, banktypes.Balance{
-		Address: "cre15rz2rwnlgr7nf6eauz52usezffwrxc0mxajpmw", // airdrop source address
-		Coins: sdk.NewCoins(
-			dexDropSupply.Add(genParams.BoostdropSupply),
-		),
+		Address: airdrop.SourceAddress,
+		Coins:   sdk.NewCoins(dexDropSupply.Add(genParams.BoostdropSupply)), // DEXDropSupply + BoostDropSupply
 	})
 
-	// Add custom accounts
+	// Add accounts
 	newBalances, totalCoins := addAccounts(genParams)
 	balances = append(balances, newBalances...)
 
-	// Set claim records and balances
+	// Set claim genesis states
 	genParams.ClaimGenesisState.ClaimRecords = records
 	genParams.BankGenesisStates.Balances = balances
 
@@ -836,18 +836,19 @@ func TestnetGenesisStates() *GenesisStates {
 	}
 	genParams.ClaimGenesisState.Airdrops = []claimtypes.Airdrop{airdrop}
 
+	// Parse claim records, balances, and total initial genesis coin from the airdrop result file
 	records, balances, totalInitialGenesisCoin := parseClaimRecords(genParams)
+
+	// Deduct 20% initial airdrop amount
 	dexDropSupply := genParams.DEXdropSupply.Sub(totalInitialGenesisCoin)
 
 	// Set source account balances
 	balances = append(balances, banktypes.Balance{
 		Address: airdrop.SourceAddress,
-		Coins: sdk.NewCoins(
-			dexDropSupply.Add(genParams.BoostdropSupply),
-		),
+		Coins:   sdk.NewCoins(dexDropSupply.Add(genParams.BoostdropSupply)), // DEXDropSupply + BoostDropSupply
 	})
 
-	// Add custom accounts
+	// Add accounts
 	newBalances, totalCoins := addAccounts(genParams)
 	balances = append(balances, newBalances...)
 
@@ -856,9 +857,7 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.BankGenesisStates.Balances = balances
 
 	// Set total supply
-	genParams.BankGenesisStates.Supply = sdk.NewCoins(
-		genParams.DEXdropSupply.Add(genParams.BoostdropSupply),
-	).Add(totalCoins...)
+	genParams.BankGenesisStates.Supply = sdk.NewCoins(genParams.DEXdropSupply.Add(genParams.BoostdropSupply)).Add(totalCoins...)
 
 	return genParams
 }
