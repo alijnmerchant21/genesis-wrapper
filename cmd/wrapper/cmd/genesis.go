@@ -133,12 +133,6 @@ func PrepareGenesis(
 	genDoc.GenesisTime = genParams.GenesisTime
 	genDoc.ConsensusParams = genParams.ConsensusParams
 
-	// Auth module app state
-	authGenState := authtypes.DefaultGenesisState()
-	authGenState.Params = genParams.AuthParams
-	authGenStateBz := cdc.MustMarshalJSON(authGenState)
-	appState[authtypes.ModuleName] = authGenStateBz
-
 	// Bank module app state
 	bankGenState := banktypes.DefaultGenesisState()
 	bankGenState.Balances = genParams.BankGenesisStates.Balances
@@ -146,6 +140,26 @@ func PrepareGenesis(
 	bankGenState.Params = genParams.BankParams
 	bankGenStateBz := cdc.MustMarshalJSON(bankGenState)
 	appState[banktypes.ModuleName] = bankGenStateBz
+
+	// Add genesis accounts
+	genAccounts := []authtypes.GenesisAccount{}
+	for _, balance := range bankGenState.GetBalances() {
+		genAccount := authtypes.NewBaseAccount(balance.GetAddress(), nil, 0, 0)
+		genAccounts = append(genAccounts, genAccount)
+	}
+	genAccounts = authtypes.SanitizeGenesisAccounts(genAccounts)
+
+	genAccs, err := authtypes.PackAccounts(genAccounts)
+	if err != nil {
+		panic(fmt.Errorf("failed to convert accounts into any's: %w", err))
+	}
+
+	// Auth module app state
+	authGenState := authtypes.DefaultGenesisState()
+	authGenState.Params = genParams.AuthParams
+	authGenState.Accounts = genAccs
+	authGenStateBz := cdc.MustMarshalJSON(authGenState)
+	appState[authtypes.ModuleName] = authGenStateBz
 
 	// Crisis module app state
 	crisisGenState := crisistypes.DefaultGenesisState()
@@ -458,97 +472,97 @@ func MainnetGenesisStates() *GenesisStates {
 	// TODO: verify start and end times, budget source and destination addresses
 	genParams.BudgetParams = budgettypes.Params{
 		EpochBlocks: 1,
-		Budgets: []budgettypes.Budget{
-			{
-				Name:               "budget-ecosystem-incentive",
-				Rate:               sdk.MustNewDecFromStr("0.662500000000000000"),
-				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
-				DestinationAddress: "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-dev-team",
-				Rate:               sdk.MustNewDecFromStr("0.250000000000000000"),
-				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
-				DestinationAddress: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-lp-1",
-				Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-mm-1",
-				Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
+		Budgets:     []budgettypes.Budget{
+			// {
+			// 	Name:               "budget-ecosystem-incentive",
+			// 	Rate:               sdk.MustNewDecFromStr("0.662500000000000000"),
+			// 	SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
+			// 	DestinationAddress: "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-dev-team",
+			// 	Rate:               sdk.MustNewDecFromStr("0.250000000000000000"),
+			// 	SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
+			// 	DestinationAddress: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-lp-1",
+			// 	Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-mm-1",
+			// 	Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
 
-			{
-				Name:               "budget-ecosystem-incentive-boost-1",
-				Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
+			// {
+			// 	Name:               "budget-ecosystem-incentive-boost-1",
+			// 	Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
 
-			{
-				Name:               "budget-ecosystem-incentive-lp-2",
-				Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-mm-2",
-				Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-boost-2",
-				Rate:               sdk.MustNewDecFromStr("0.500000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-lp-3-10",
-				Rate:               sdk.MustNewDecFromStr("0.100000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-mm-3-10",
-				Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
-			{
-				Name:               "budget-ecosystem-incentive-boost-3-10",
-				Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
-				SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
-				DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
-				StartTime:          genParams.GenesisTime,
-				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
-			},
+			// {
+			// 	Name:               "budget-ecosystem-incentive-lp-2",
+			// 	Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-mm-2",
+			// 	Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-boost-2",
+			// 	Rate:               sdk.MustNewDecFromStr("0.500000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-lp-3-10",
+			// 	Rate:               sdk.MustNewDecFromStr("0.100000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-mm-3-10",
+			// 	Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
+			// {
+			// 	Name:               "budget-ecosystem-incentive-boost-3-10",
+			// 	Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
+			// 	SourceAddress:      "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+			// 	DestinationAddress: "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm",
+			// 	StartTime:          genParams.GenesisTime,
+			// 	EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
+			// },
 		},
 	}
 
@@ -964,8 +978,8 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 	}
 
 	totalInitialGenesisAmt := sdk.ZeroInt()
-	balances := []banktypes.Balance{}
 	records := []claimtypes.ClaimRecord{}
+	balances := []banktypes.Balance{}
 
 	for i, r := range results {
 		if i == 0 {
@@ -996,10 +1010,11 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 		initialClaimableAmt := dexClaimableAmt.Sub(initialGenesisAmt)
 
 		// 20% is set in genesis
-		balances = append(balances, banktypes.Balance{
+		balance := banktypes.Balance{
 			Address: recipientAddr,
 			Coins:   sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, initialGenesisAmt)),
-		})
+		}
+		balances = append(balances, balance)
 
 		// 80% is set in claim record
 		records = append(records, claimtypes.ClaimRecord{
