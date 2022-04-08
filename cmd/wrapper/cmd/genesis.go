@@ -792,8 +792,8 @@ func TestnetGenesisStates() *GenesisStates {
 	genParams.LiquidityParams = liquiditytypes.Params{
 		BatchSize:                1,
 		TickPrecision:            3,
-		FeeCollectorAddress:      "cre1zdew6yxyw92z373yqp756e0x4rvd2het37j0a2wjp7fj48eevxvq303p8d",
-		DustCollectorAddress:     "cre1suads2mkd027cmfphmk9fpuwcct4d8ys02frk8e64hluswfwfj0s4xymnj",
+		FeeCollectorAddress:      LiquidityFeeCollectorAddress,
+		DustCollectorAddress:     LiquidityDustCollectorAddress,
 		MinInitialPoolCoinSupply: sdk.NewInt(1000000000000),
 		PairCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
 		PoolCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100000000)),
@@ -832,16 +832,16 @@ func TestnetGenesisStates() *GenesisStates {
 			{
 				Name:               "budget-ecosystem-incentive",
 				Rate:               sdk.MustNewDecFromStr("0.662500000000000000"),
-				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
-				DestinationAddress: "cre1kgshua58cjr2p7hnrvgun68yrqf7ktdzyz2yxv54fqj6uwl4gc4q95txqa",
+				SourceAddress:      InflationFeeCollector,
+				DestinationAddress: EcosystemIncentive,
 				StartTime:          genParams.GenesisTime,
 				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
 			},
 			{
 				Name:               "budget-dev-team",
 				Rate:               sdk.MustNewDecFromStr("0.250000000000000000"),
-				SourceAddress:      "cre17xpfvakm2amg962yls6f84z3kell8c5l53s97s",
-				DestinationAddress: "cre1z6utpv37rts2lytmwlft983yv3c5a2yy3utp8q",
+				SourceAddress:      InflationFeeCollector,
+				DestinationAddress: DevTeamAddress,
 				StartTime:          genParams.GenesisTime,
 				EndTime:            genParams.GenesisTime.AddDate(10, 0, 0),
 			},
@@ -851,7 +851,7 @@ func TestnetGenesisStates() *GenesisStates {
 	// Set airdrop
 	airdrop := claimtypes.Airdrop{
 		Id:            1,
-		SourceAddress: "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax", // airdrop source address
+		SourceAddress: AirdropSourceAddress, // airdrop source address
 		Conditions: []claimtypes.ConditionType{
 			claimtypes.ConditionTypeDeposit,
 			claimtypes.ConditionTypeSwap,
