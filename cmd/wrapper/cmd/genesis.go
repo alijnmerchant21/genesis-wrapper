@@ -266,9 +266,9 @@ var (
 	EcosystemIncentiveLP          = "cre1wht0xhmuqph4rhzulhejgatthnpeatzjgnnkvqvphq97xr26np0qdvun2s"
 	EcosystemIncentiveMM          = "cre1ddn66jv0sjpmck0ptegmhmqtn35qsg2vxyk2hn9sqf4qxtzqz3sq3qhhde"
 	EcosystemIncentiveBoost       = "cre17zftu6rg7mkmemqxv4whjkvecl0e2ja7j6um9t8qaczp79y72d7q2su2xm"
-	DevTeamAddress                = "cre1ge2jm9nkvu2l8cvhc2un4m33d4yy4p0wfag09j"
 	AirdropSourceAddress          = "cre1rq9dzurree0ruj4xvuss33ysfus3lkneg3jnfdsy4ah8gxjta3mqlr2sax"
-	FoundationAddress             = "cre1a7pk975rm4pkuh45ku3cv4xwfrta3vnqjwyjkz"
+	FoundationAddress             = "cre1u9jxn6l7seq5jjej4w6etpdxufphwfuunljr4e" // multisig
+	DevTeamAddress                = "cre1ge2jm9nkvu2l8cvhc2un4m33d4yy4p0wfag09j" // multisig
 )
 
 func MainnetGenesisStates() *GenesisStates {
