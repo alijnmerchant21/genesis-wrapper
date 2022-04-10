@@ -45,6 +45,7 @@ type GenesisStates struct {
 	ChainId             string
 	ConsensusParams     *tmproto.ConsensusParams
 	AuthParams          authtypes.Params
+	AuthGenesisState    authtypes.GenesisState
 	BankParams          banktypes.Params
 	DistributionParams  distrtypes.Params
 	StakingParams       stakingtypes.Params
@@ -160,23 +161,10 @@ func PrepareGenesis(
 	bankGenStateBz := cdc.MustMarshalJSON(bankGenState)
 	appState[banktypes.ModuleName] = bankGenStateBz
 
-	// Add genesis accounts
-	genAccounts := []authtypes.GenesisAccount{}
-	for _, balance := range bankGenState.GetBalances() {
-		genAccount := authtypes.NewBaseAccount(balance.GetAddress(), nil, 0, 0)
-		genAccounts = append(genAccounts, genAccount)
-	}
-	genAccounts = authtypes.SanitizeGenesisAccounts(genAccounts)
-
-	genAccs, err := authtypes.PackAccounts(genAccounts)
-	if err != nil {
-		panic(fmt.Errorf("failed to convert accounts into any's: %w", err))
-	}
-
 	// Auth module app state
 	authGenState := authtypes.DefaultGenesisState()
 	authGenState.Params = genParams.AuthParams
-	authGenState.Accounts = genAccs
+	authGenState.Accounts = genParams.AuthGenesisState.Accounts
 	authGenStateBz := cdc.MustMarshalJSON(authGenState)
 	appState[authtypes.ModuleName] = authGenStateBz
 
@@ -281,8 +269,8 @@ func readCSVFile(filePath string) ([][]string, error) {
 	return records, nil
 }
 
-// parseTime parses and returns time.Time in time.RFC3339 format.
-func parseTime(s string) time.Time {
+// ParseTime parses and returns time.Time in time.RFC3339 format.
+func ParseTime(s string) time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		panic(err)
