@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -23,7 +24,9 @@ import (
 )
 
 var (
-	filePath = "./data/result.csv" // airdrop result file
+	filePath            = "./data/result.csv"              // airdrop result file
+	VestingFilePath     = "./data/vesting.csv"             // vesting file
+	VestingFilePathTest = "../../../data/vesting_test.csv" // vesting file
 )
 
 var (
@@ -42,6 +45,7 @@ var (
 
 var (
 	GenesisTime      = "2022-04-13T00:00:00Z"
+	GenesisTimeUnix  = ParseTime(GenesisTime).Unix()
 	BondDenom        = "ucre"
 	LiquidBondDenom  = "ubcre"
 	FoundationSupply = sdk.NewInt(100_000_000_000_000) // 100mil
@@ -56,7 +60,7 @@ func MainnetGenesisStates() *GenesisStates {
 	genParams.BoostdropSupply = sdk.NewCoin(genParams.BondDenom, BoostDropSupply) // 50mil
 
 	// Set genesis time
-	genParams.GenesisTime = parseTime(GenesisTime)
+	genParams.GenesisTime = ParseTime(GenesisTime)
 
 	// Set consensus params
 	genParams.ConsensusParams = &tmproto.ConsensusParams{
@@ -289,7 +293,7 @@ func MainnetGenesisStates() *GenesisStates {
 			},
 			{
 				Name:               "budget-ecosystem-incentive-lp-1",
-				Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
+				Rate:               sdk.MustNewDecFromStr("0.500000000000000000"),
 				SourceAddress:      EcosystemIncentive,
 				DestinationAddress: EcosystemIncentiveLP,
 				StartTime:          genParams.GenesisTime,
@@ -297,7 +301,7 @@ func MainnetGenesisStates() *GenesisStates {
 			},
 			{
 				Name:               "budget-ecosystem-incentive-mm-1",
-				Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
+				Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
 				SourceAddress:      EcosystemIncentive,
 				DestinationAddress: EcosystemIncentiveMM,
 				StartTime:          genParams.GenesisTime,
@@ -391,79 +395,149 @@ func MainnetGenesisStates() *GenesisStates {
 	})
 
 	// Add accounts
-	newBalances, totalCoins := addAccounts(genParams)
+	newBalances, totalValidatorBalances := addValidatorBalances()
 	balances = append(balances, newBalances...)
+
+	// Sub validator amount from foundation
+	FoundationSupply = FoundationSupply.Sub(totalValidatorBalances.AmountOf(BondDenom))
+	// Parse and create vesting accounts info
+	totalVestingAmt, vestingAccsMap, vestingAccs := ParseVestingAccounts(VestingFilePath)
+
+	// Sub vesting amount from foundation
+	FoundationSupply = FoundationSupply.Sub(totalVestingAmt)
+
+	// Add Foundation balance
+	balances = append(balances, banktypes.Balance{Address: FoundationAddress,
+		Coins: sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, FoundationSupply)), // 100mil - validator amount - vesting amount
+	})
+
+	// Add genesis accounts
+	genAccounts := []authtypes.GenesisAccount{}
+	vestingAccsBalances := []banktypes.Balance{}
+	balancesMap := map[string]banktypes.Balance{}
+
+	// Add Foundation as 1st account
+	FoundationAcc, err := sdk.AccAddressFromBech32(FoundationAddress)
+	if err != nil {
+		panic(err)
+	}
+	genAccount := authtypes.NewBaseAccount(FoundationAcc, nil, 0, 0)
+	genAccounts = append(genAccounts, genAccount)
+
+	// Add Other accounts
+	for i, balance := range balances {
+		balancesMap[balance.Address] = balance
+
+		// add vesting balance on existing account
+		if vestingAcc, ok := vestingAccsMap[balance.GetAddress().String()]; ok {
+			fmt.Println("added vesting balance on existing account", balance.GetAddress().String(), balances[i].Coins)
+			balances[i].Coins = balances[i].Coins.Add(vestingAcc.OriginalVesting...)
+		} else if balance.GetAddress().String() != FoundationAddress {
+			// add genAccount except vesting accounts
+			genAccount := authtypes.NewBaseAccount(balance.GetAddress(), nil, 0, 0)
+			genAccounts = append(genAccounts, genAccount)
+		}
+	}
+
+	// Add vesting accounts
+	for _, vestingAcc := range vestingAccs {
+		// add balance for new vesting accounts
+		if _, ok := balancesMap[vestingAcc.GetAddress().String()]; !ok {
+			vestingAccsBalances = append(vestingAccsBalances, banktypes.Balance{
+				Address: vestingAcc.Address,
+				Coins:   vestingAcc.OriginalVesting,
+			})
+		}
+		genAccounts = append(genAccounts, vestingAcc)
+	}
+	balances = append(balances, vestingAccsBalances...)
+
+	// Verify genesis accounts
+	for _, genAccount := range genAccounts {
+		if err := genAccount.Validate(); err != nil {
+			panic(fmt.Sprintf("failed to validate genesis account: %s", err.Error()))
+		}
+	}
+
+	genAccounts = authtypes.SanitizeGenesisAccounts(genAccounts)
+
+	genAccs, err := authtypes.PackAccounts(genAccounts)
+	if err != nil {
+		panic(fmt.Errorf("failed to convert accounts into any's: %w", err))
+	}
+	genParams.AuthGenesisState.Accounts = genAccs
 
 	// Set claim genesis states
 	genParams.ClaimGenesisState.ClaimRecords = records
 	genParams.BankGenesisStates.Balances = balances
 
 	// Set supply genesis states
-	// Total supply = DEXDropSupply + BoostDropSupply + TotalCoins
-	genParams.BankGenesisStates.Supply = sdk.NewCoins(genParams.DEXdropSupply.Add(genParams.BoostdropSupply)).Add(totalCoins...)
+	// Total supply = DEXDropSupply + BoostDropSupply + Foundation + ValidatorBalances + TotalVestingAmount
+	genParams.BankGenesisStates.Supply = sdk.NewCoins(
+		genParams.DEXdropSupply.Add(genParams.BoostdropSupply)).
+		Add(sdk.NewCoin(BondDenom, FoundationSupply)).
+		Add(totalValidatorBalances...).Add(sdk.NewCoin(BondDenom, totalVestingAmt))
 
+	fmt.Println("DEXdropSupply :", genParams.DEXdropSupply)
+	fmt.Println("BoostdropSupply :", genParams.BoostdropSupply)
+	fmt.Println("FoundationSupply :", FoundationSupply)
+	fmt.Println("ValidatorBalances :", totalValidatorBalances)
+	fmt.Println("totalVestingAmt :", totalVestingAmt)
+	fmt.Println("len(vestingAccs) :", len(vestingAccs))
+	fmt.Println("TotalSupply :", genParams.BankGenesisStates.Supply)
 	return genParams
 }
 
-func addAccounts(genParams *GenesisStates) ([]banktypes.Balance, sdk.Coins) {
-	valNum := sdk.NewInt(10 - 2)
-	totalValidatorAmt := sdk.NewInt(1_000_000).Mul(valNum)
-
+func addValidatorBalances() ([]banktypes.Balance, sdk.Coins) {
 	balances := []banktypes.Balance{
-		// Foundation
-		{
-			Address: FoundationAddress,
-			Coins:   sdk.NewCoins(sdk.NewCoin(genParams.BondDenom, FoundationSupply).Sub(sdk.NewCoin(genParams.BondDenom, totalValidatorAmt))), // 100mil - validator amount
-		},
-		// Validators
 		//{
 		//	Address: "cre1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4m476lg", // already balance exist (airdrop recipient)
-		//	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		//	Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		//},
 		{
 			Address: "cre17muws0zgrd0vzh37guea7960ym7aqf2j8c6sn6",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre1ls9w867xu0q5zjze5vrakfa2zluahtv4huwunw",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre10rdgqczxyp69x9llq62cc3xs4w8w0k7ph7x2l2",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre1dad8evf6vw72seljuzhjgurq48egaqfn0cq72x",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre1zuucyy5v49lwnrdupqqafqdu29qy6wgnlewe3k",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		//{
 		//	Address: "cre14lultfckehtszvzw4ehu0apvsr77afvynqnjm6", // already balance exist (airdrop recipient)
-		//	Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+		//	Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		//},
 		{
 			Address: "cre1qvdyzetkqq6rt4xu234xpvee5wt45a75pl2jyn",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre18zvtvhzrqq5ny2jpmlc6new9k4c4uzzhclcxvp",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 		{
 			Address: "cre1pxexdsms050v35zu0vc07dk4ml647lsrsafm8z",
-			Coins:   sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 1_000_000)),
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
 	}
 
-	totalCoins := sdk.Coins{}
+	totalValidatorAmt := sdk.Coins{}
 	for _, balance := range balances {
-		totalCoins = totalCoins.Add(balance.Coins...)
+		totalValidatorAmt = totalValidatorAmt.Add(balance.Coins...)
 	}
 
-	return balances, totalCoins
+	return balances, totalValidatorAmt
 }
 
 func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []banktypes.Balance, sdk.Coin) {
@@ -482,7 +556,10 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 		}
 
 		recipientAddr := r[0]
-		dexClaimableAmt, _ := sdk.NewIntFromString(r[1])
+		dexClaimableAmt, ok := sdk.NewIntFromString(r[1])
+		if !ok {
+			panic("failed NewIntFromString for dexClaimableAmt")
+		}
 
 		// Convert bech32 address prefix
 		_, converted, err := bech32.DecodeAndConvert(recipientAddr)
@@ -526,4 +603,121 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 	totalInitialGenesisCoin := sdk.NewCoin(genParams.BondDenom, totalInitialGenesisAmt)
 
 	return records, balances, totalInitialGenesisCoin
+}
+
+func ParseVestingAccounts(filePath string) (sdk.Int, map[string]*authvesting.PeriodicVestingAccount, []*authvesting.PeriodicVestingAccount) {
+	vestingAccs := []*authvesting.PeriodicVestingAccount{}
+	vestingAccMap := make(map[string]*authvesting.PeriodicVestingAccount)
+	results, err := readCSVFile(filePath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to read csv file %s", filePath))
+	}
+
+	totalVestingAmt := sdk.ZeroInt()
+
+	for i, r := range results {
+		if i == 0 {
+			continue
+		}
+
+		recipientAddr := r[0]
+		vestingAmt, ok := sdk.NewIntFromString(r[1])
+		if !ok {
+			panic("failed NewIntFromString for vestingAmt")
+		}
+
+		// Convert bech32 address prefix
+		_, converted, err := bech32.DecodeAndConvert(recipientAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		targetPrefix := sdk.GetConfig().GetBech32AccountAddrPrefix()
+		recipientAddr, err = bech32.ConvertAndEncode(targetPrefix, converted)
+		if err != nil {
+			panic(err)
+		}
+		recipientAcc, err := sdk.AccAddressFromBech32(recipientAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		// Skip the zero amount
+		if vestingAmt.IsZero() {
+			continue
+		}
+
+		baseAcc := authtypes.NewBaseAccount(recipientAcc, nil, 0, 0)
+		periodVestingAcc := authvesting.NewPeriodicVestingAccount(baseAcc, sdk.NewCoins(sdk.NewCoin(BondDenom, vestingAmt)), GenesisTimeUnix, CalcVestingPeriod(vestingAmt))
+		vestingAccMap[periodVestingAcc.Address] = periodVestingAcc
+		vestingAccs = append(vestingAccs, periodVestingAcc)
+
+		// Track the total vesting amount
+		totalVestingAmt = totalVestingAmt.Add(vestingAmt)
+	}
+	return totalVestingAmt, vestingAccMap, vestingAccs
+}
+
+var (
+	FirstYearCliff              = int64(60 * 60 * 24 * 365)                              // 31,536,000 1year
+	SecondThirdYearMonthlyCliff = int64(60 * 60 * 24 * 365 / 12)                         // 2,628,000 1month
+	TotalVestingLength          = FirstYearCliff + SecondThirdYearMonthlyCliff*int64(24) // 94,608,000 3year
+	FirstYearRatio              = sdk.MustNewDecFromStr("0.34")
+	SecondYearRatio             = sdk.MustNewDecFromStr("0.34")
+	ThirdYearRatio              = sdk.MustNewDecFromStr("0.32")
+	TotalCliff                  = 25
+)
+
+func CalcVestingPeriod(totalVestingAmount sdk.Int) authvesting.Periods {
+	periods := authvesting.Periods{}
+
+	firstYearVestingAmount := totalVestingAmount.ToDec().MulTruncate(FirstYearRatio).TruncateInt()
+	secondYearMonthlyVestingAmount := totalVestingAmount.ToDec().MulTruncate(SecondYearRatio).QuoInt64(12).TruncateInt()
+	thirdYearMonthlyVestingAmount := totalVestingAmount.ToDec().MulTruncate(ThirdYearRatio).QuoInt64(12).TruncateInt()
+	crumb := totalVestingAmount.Sub(firstYearVestingAmount).Sub(secondYearMonthlyVestingAmount.MulRaw(12)).Sub(thirdYearMonthlyVestingAmount.MulRaw(12))
+	firstYearVestingAmount = firstYearVestingAmount.Add(crumb)
+	//firstYearVestingAmount := totalVestingAmount.Sub(secondYearMonthlyVestingAmount.MulRaw(12)).Sub(thirdYearMonthlyVestingAmount.MulRaw(12))
+
+	// 1st year
+	periods = append(periods, authvesting.Period{
+		Length: FirstYearCliff,
+		Amount: sdk.NewCoins(sdk.NewCoin(BondDenom, firstYearVestingAmount)),
+	})
+
+	// 2nd year
+	for i := 0; i < 12; i++ {
+		periods = append(periods, authvesting.Period{
+			Length: SecondThirdYearMonthlyCliff,
+			Amount: sdk.NewCoins(sdk.NewCoin(BondDenom, secondYearMonthlyVestingAmount)),
+		})
+	}
+
+	// 3rd year
+	for i := 0; i < 12; i++ {
+		periods = append(periods, authvesting.Period{
+			Length: SecondThirdYearMonthlyCliff,
+			Amount: sdk.NewCoins(sdk.NewCoin(BondDenom, thirdYearMonthlyVestingAmount)),
+		})
+	}
+
+	if len(periods) != TotalCliff {
+		panic("error vesting periods number")
+	}
+
+	totalLength := int64(0)
+	totalAmount := sdk.ZeroInt()
+	for _, period := range periods {
+		totalLength = totalLength + period.Length
+		totalAmount = totalAmount.Add(period.Amount[0].Amount)
+	}
+
+	if totalLength != TotalVestingLength {
+		panic("error total vesting length")
+	}
+
+	if !totalAmount.Equal(totalVestingAmount) {
+		fmt.Println(totalAmount, totalVestingAmount)
+		panic("error total vesting amount")
+	}
+	return periods
 }
