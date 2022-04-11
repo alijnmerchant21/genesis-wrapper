@@ -396,12 +396,13 @@ func MainnetGenesisStates() *GenesisStates {
 
 	// Add accounts
 	newBalances, totalValidatorBalances := addValidatorBalances()
-	// Sub validator amount from foundation
-	FoundationSupply = FoundationSupply.Sub(totalValidatorBalances.AmountOf(BondDenom))
 	balances = append(balances, newBalances...)
 
+	// Sub validator amount from foundation
+	FoundationSupply = FoundationSupply.Sub(totalValidatorBalances.AmountOf(BondDenom))
 	// Parse and create vesting accounts info
 	totalVestingAmt, vestingAccsMap, vestingAccs := ParseVestingAccounts(VestingFilePath)
+
 	// Sub vesting amount from foundation
 	FoundationSupply = FoundationSupply.Sub(totalVestingAmt)
 
@@ -545,7 +546,10 @@ func parseClaimRecords(genParams *GenesisStates) ([]claimtypes.ClaimRecord, []ba
 		}
 
 		recipientAddr := r[0]
-		dexClaimableAmt, _ := sdk.NewIntFromString(r[1])
+		dexClaimableAmt, ok := sdk.NewIntFromString(r[1])
+		if !ok {
+			panic("failed NewIntFromString for dexClaimableAmt")
+		}
 
 		// Convert bech32 address prefix
 		_, converted, err := bech32.DecodeAndConvert(recipientAddr)
@@ -607,7 +611,10 @@ func ParseVestingAccounts(filePath string) (sdk.Int, map[string]*authvesting.Per
 		}
 
 		recipientAddr := r[0]
-		vestingAmt, _ := sdk.NewIntFromString(r[1])
+		vestingAmt, ok := sdk.NewIntFromString(r[1])
+		if !ok {
+			panic("failed NewIntFromString for vestingAmt")
+		}
 
 		// Convert bech32 address prefix
 		_, converted, err := bech32.DecodeAndConvert(recipientAddr)
