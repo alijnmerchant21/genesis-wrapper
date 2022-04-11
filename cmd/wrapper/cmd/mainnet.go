@@ -415,6 +415,16 @@ func MainnetGenesisStates() *GenesisStates {
 	genAccounts := []authtypes.GenesisAccount{}
 	vestingAccsBalances := []banktypes.Balance{}
 	balancesMap := map[string]banktypes.Balance{}
+
+	// Add Foundation as 1st account
+	FoundationAcc, err := sdk.AccAddressFromBech32(FoundationAddress)
+	if err != nil {
+		panic(err)
+	}
+	genAccount := authtypes.NewBaseAccount(FoundationAcc, nil, 0, 0)
+	genAccounts = append(genAccounts, genAccount)
+
+	// Add Other accounts
 	for i, balance := range balances {
 		balancesMap[balance.Address] = balance
 
@@ -422,7 +432,7 @@ func MainnetGenesisStates() *GenesisStates {
 		if vestingAcc, ok := vestingAccsMap[balance.GetAddress().String()]; ok {
 			fmt.Println("added vesting balance on existing account", balance.GetAddress().String(), balances[i].Coins)
 			balances[i].Coins = balances[i].Coins.Add(vestingAcc.OriginalVesting...)
-		} else {
+		} else if balance.GetAddress().String() != FoundationAddress {
 			// add genAccount except vesting accounts
 			genAccount := authtypes.NewBaseAccount(balance.GetAddress(), nil, 0, 0)
 			genAccounts = append(genAccounts, genAccount)
