@@ -293,7 +293,7 @@ func MainnetGenesisStates() *GenesisStates {
 			},
 			{
 				Name:               "budget-ecosystem-incentive-lp-1",
-				Rate:               sdk.MustNewDecFromStr("0.600000000000000000"),
+				Rate:               sdk.MustNewDecFromStr("0.500000000000000000"),
 				SourceAddress:      EcosystemIncentive,
 				DestinationAddress: EcosystemIncentiveLP,
 				StartTime:          genParams.GenesisTime,
@@ -301,7 +301,7 @@ func MainnetGenesisStates() *GenesisStates {
 			},
 			{
 				Name:               "budget-ecosystem-incentive-mm-1",
-				Rate:               sdk.MustNewDecFromStr("0.200000000000000000"),
+				Rate:               sdk.MustNewDecFromStr("0.300000000000000000"),
 				SourceAddress:      EcosystemIncentive,
 				DestinationAddress: EcosystemIncentiveMM,
 				StartTime:          genParams.GenesisTime,
