@@ -15,6 +15,7 @@ Initialize chain and prepare genesis file
 ```bash
 wrapper init test
 wrapper prepare-genesis testnet mooncat-1-1
+wrapper prepare-genesis mainnet crescent-1
 ```
 
 ## Testing (Reference)
