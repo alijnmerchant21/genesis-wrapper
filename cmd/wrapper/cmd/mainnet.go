@@ -247,7 +247,7 @@ func MainnetGenesisStates() *GenesisStates {
 		MinInitialPoolCoinSupply: sdk.NewInt(1_000000_000000),
 		PairCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000)),
 		PoolCreationFee:          sdk.NewCoins(sdk.NewInt64Coin(genParams.BondDenom, 100_000_000)),
-		MinInitialDepositAmount:  sdk.NewInt(100000000),
+		MinInitialDepositAmount:  sdk.NewInt(1000000),
 		DepositExtraGas:          sdk.Gas(60000),
 		WithdrawExtraGas:         sdk.Gas(64000),
 		OrderExtraGas:            sdk.Gas(37000),
@@ -452,6 +452,31 @@ func MainnetGenesisStates() *GenesisStates {
 				Coins:   vestingAcc.OriginalVesting,
 			})
 		}
+
+		first := vestingAcc.VestingPeriods[0].Amount
+		second := sdk.Coins{}
+		for _, period := range vestingAcc.VestingPeriods[1:13] {
+			second = second.Add(period.Amount...)
+		}
+		third := sdk.Coins{}
+		for _, period := range vestingAcc.VestingPeriods[13:25] {
+			third = third.Add(period.Amount...)
+		}
+
+		_, converted, err := bech32.DecodeAndConvert(vestingAcc.Address)
+		if err != nil {
+			panic(err)
+		}
+
+		vestingCosmosAddr, err := bech32.ConvertAndEncode("cosmos", converted)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(vestingCosmosAddr, vestingAcc.OriginalVesting, first, second, third)
+		if !first.Add(second...).Add(third...).IsEqual(vestingAcc.OriginalVesting) {
+			panic("total not equal")
+		}
+
 		genAccounts = append(genAccounts, vestingAcc)
 	}
 	balances = append(balances, vestingAccsBalances...)
