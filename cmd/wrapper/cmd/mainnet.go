@@ -229,6 +229,10 @@ func MainnetGenesisStates() *GenesisStates {
 				ValidatorAddress: "crevaloper1pxexdsms050v35zu0vc07dk4ml647lsrjff52g",
 				TargetWeight:     sdk.NewInt(10),
 			},
+			{
+				ValidatorAddress: "crevaloper130mdu9a0etmeuw52qfxk73pn0ga6gawk9cyq6a",
+				TargetWeight:     sdk.NewInt(10),
+			},
 		},
 		UnstakeFeeRate:         sdk.MustNewDecFromStr("0.000000000000000000"),
 		MinLiquidStakingAmount: sdk.NewInt(1000000),
@@ -530,6 +534,10 @@ func addValidatorBalances() ([]banktypes.Balance, sdk.Coins) {
 			Address: "cre1pxexdsms050v35zu0vc07dk4ml647lsrsafm8z",
 			Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
 		},
+		//{
+		//	Address: "cre130mdu9a0etmeuw52qfxk73pn0ga6gawk8vy0hh", // already balance exist (airdrop recipient)
+		//	Coins:   sdk.NewCoins(sdk.NewInt64Coin(BondDenom, 1_000_000)),
+		//},
 	}
 
 	totalValidatorAmt := sdk.Coins{}

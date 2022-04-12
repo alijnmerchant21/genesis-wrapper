@@ -14,7 +14,6 @@ Initialize chain and prepare genesis file
 
 ```bash
 wrapper init test
-wrapper prepare-genesis testnet mooncat-1-1
 wrapper prepare-genesis mainnet crescent-1
 ```
 
@@ -33,7 +32,7 @@ make install
 
 ```bash
 BINARY=crescentd
-CHAIN_ID=mooncat-1-1
+CHAIN_ID=crescent-1
 RPC_PORT=26657
 GRPC_PORT=9090
 ALICE="guard cream sadness conduct invite crumble clock pudding hole grit liar hotel maid produce squeeze return argue turtle know drive eight casino maze host"
