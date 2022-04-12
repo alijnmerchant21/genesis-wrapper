@@ -434,7 +434,7 @@ func MainnetGenesisStates() *GenesisStates {
 
 		// add vesting balance on existing account
 		if vestingAcc, ok := vestingAccsMap[balance.GetAddress().String()]; ok {
-			fmt.Println("added vesting balance on existing account", balance.GetAddress().String(), balances[i].Coins)
+			fmt.Println("added vesting balance on existing account", balance.GetAddress().String(), balances[i].Coins, vestingAcc.OriginalVesting, balances[i].Coins.Add(vestingAcc.OriginalVesting...))
 			balances[i].Coins = balances[i].Coins.Add(vestingAcc.OriginalVesting...)
 		} else if balance.GetAddress().String() != FoundationAddress {
 			// add genAccount except vesting accounts
